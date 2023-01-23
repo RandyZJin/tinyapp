@@ -22,7 +22,6 @@ app.post("/urls", (req, res) => {
   let newID = generateRandomString();
   console.log(newID);
   urlDatabase[newID] = req.body.longURL;
-  // res.send("http://www.google.com");
   res.redirect(`/urls/${newID}`); 
 });
 
@@ -31,6 +30,13 @@ app.post("/urls/:id/delete", (req, res) => {
   console.log(`${urlDatabase[req.params.id]} being deleted`); // Log the POST request body to the console
   delete urlDatabase[req.params.id];
 
+});
+
+app.post("/urls/:id", (req, res) => {
+  console.log(`edit: ${req.params.id} being changed to ${req.body.longURL}`); // Log the POST request body to the console
+  let updateID = req.params.id;
+  urlDatabase[updateID] = req.body.longURL;
+  res.redirect(`/urls/`); 
 });
 
 app.get("/", (req, res) => {
