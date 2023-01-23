@@ -7,7 +7,7 @@ app.use(express.urlencoded({ extended: true }));
 
 
 function generateRandomString() {
-  return Math.random().toString(36).slice(7)
+  return Math.random().toString(36).slice(length - 6);
 }
 
 
