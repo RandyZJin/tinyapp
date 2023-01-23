@@ -7,7 +7,8 @@ app.use(express.urlencoded({ extended: true }));
 
 
 function generateRandomString() {
-  return Math.random().toString(36).slice(length - 6);
+  let output = Math.random().toString(36)
+  return output.slice(output.length - 6);
 }
 
 
@@ -23,6 +24,13 @@ app.post("/urls", (req, res) => {
   urlDatabase[newID] = req.body.longURL;
   // res.send("http://www.google.com");
   res.redirect(`/urls/${newID}`); 
+});
+
+
+app.post("/urls/:id/delete", (req, res) => {
+  console.log(`${urlDatabase[req.params.id]} being deleted`); // Log the POST request body to the console
+  delete urlDatabase[req.params.id];
+
 });
 
 app.get("/", (req, res) => {
