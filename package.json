@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/SymphonicRain/tinyapp/issues"
   },
-  "homepage": "https://github.com/SymphonicRain/tinyapp#readme"
+  "homepage": "https://github.com/SymphonicRain/tinyapp#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
 }
