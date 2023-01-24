@@ -19,8 +19,8 @@
       </div>
     </div>
 
-    <% if(username){ %>
-      You are currently logged in as: <%= username %>
+    <% if(user.email){ %>
+      You are currently logged in as: <%= user.email %>
 
       <form class="form-inline" action="/logout" method="POST">
         <div class="form-group mb-2">

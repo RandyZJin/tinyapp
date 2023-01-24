@@ -19,12 +19,39 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 };
 
+const users = {
+  userRandomID: {
+    id: "userRandomID",
+    email: "user@example.com",
+    password: "purple-monkey-dinosaur",
+  },
+  user2RandomID: {
+    id: "user2RandomID",
+    email: "user2@example.com",
+    password: "dishwasher-funk",
+  },
+};
+
+
 app.post("/urls", (req, res) => {
   console.log(req.body); // Log the POST request body to the console
   let newID = generateRandomString();
   console.log(newID);
   urlDatabase[newID] = req.body.longURL;
   res.redirect(`/urls/${newID}`); 
+});
+
+app.post("/register", (req, res) => {
+  console.log(req.body.email, req.body.password); // Log the POST request body to the console
+  let newID = generateRandomString();
+  console.log(`new user: ${newID}`);
+  users[newID] = {};
+  users[newID].id = newID;
+  users[newID].email = req.body.email;
+  users[newID].password = req.body.password;
+  console.log(users);
+  res.cookie("user_id", users[newID].id);
+  res.redirect(`/urls/`); 
 });
 
 
@@ -63,8 +90,11 @@ app.get("/", (req, res) => {
 });
 
 app.get("/register", (req, res) => {
+  console.log(users)
+  console.log(users[req.cookies.user_id])
   const templateVars = {
-    username: req.cookies["user"], 
+    username: req.cookies["user"],
+    user_id: req.cookies["user_id"],
     id: req.params.id,
     longURL: urlDatabase[req.params.id]
   };
@@ -73,8 +103,10 @@ app.get("/register", (req, res) => {
 
 app.get("/urls", (req, res) => {
   // console.log(req.cookies);
+  // console.log(users[req.cookies.user_id].email)
   const templateVars = { 
-    username: req.cookies["user"], 
+    username: req.cookies["user"],
+    user: users[req.cookies.user_id],
     urls: urlDatabase 
   };
   res.render("urls_index", templateVars);
@@ -82,7 +114,8 @@ app.get("/urls", (req, res) => {
 
 app.get("/urls/new", (req, res) => {
   const templateVars = {
-    username: req.cookies["user"], 
+    username: req.cookies["user"],
+    user: users[req.cookies.user_id],
     id: req.params.id,
     longURL: urlDatabase[req.params.id]
   };
@@ -92,7 +125,8 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:id", (req, res) => {
   // console.log(urlDatabase[req.params.id])
   const templateVars = {
-    username: req.cookies["user"], 
+    username: req.cookies["user"],
+    user: users[req.cookies.user_id],
     id: req.params.id,
     longURL: urlDatabase[req.params.id]
   };
@@ -100,7 +134,6 @@ app.get("/urls/:id", (req, res) => {
 });
 
 app.get("/u/:id", (req, res) => {
-
   const longURL = urlDatabase[req.params.id];
   res.redirect(longURL);
 });
