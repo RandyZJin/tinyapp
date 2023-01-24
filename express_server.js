@@ -29,13 +29,23 @@ app.post("/urls", (req, res) => {
 app.post("/urls/:id/delete", (req, res) => {
   console.log(`${urlDatabase[req.params.id]} being deleted`); // Log the POST request body to the console
   delete urlDatabase[req.params.id];
-
+  res.redirect(`/urls/`); 
 });
 
 app.post("/urls/:id", (req, res) => {
   console.log(`edit: ${req.params.id} being changed to ${req.body.longURL}`); // Log the POST request body to the console
   let updateID = req.params.id;
   urlDatabase[updateID] = req.body.longURL;
+  res.redirect(`/urls/`); 
+});
+
+
+app.post("/login", (req, res) => {
+  console.log(`login request for : ${req.body}`); // Log the POST request body to the console
+  console.log(req.body)
+  res.cookie("user", req.body.username)
+  // let updateID = req.params.id;
+  // urlDatabase[updateID] = req.body.longURL;
   res.redirect(`/urls/`); 
 });
 
