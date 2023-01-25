@@ -45,23 +45,29 @@ const urlDatabase = {
   } 
 };
 
+const bcrypt = require("bcryptjs");
+
 const users = {
   userRandomID: {
     id: "userRandomID",
     email: "user@example.com",
-    password: "purple-monkey-dinosaur",
+    password: bcrypt.hashSync("purple-monkey-dinosaur", 10),
   },
   user2RandomID: {
     id: "user2RandomID",
     email: "user2@example.com",
-    password: "dishwasher-funk",
+    password: bcrypt.hashSync("dishwasher-funk", 10),
   },
   test: {
     id: "test",
     email: "bob@bob.com",
-    password: "bob",
+    password: bcrypt.hashSync("bob", 10),
   },
 };
+
+// const password = "purple-monkey-dinosaur"; // found in the req.body object
+// const hashedPassword = bcrypt.hashSync(password, 10);
+
 
 const getUserByEmail = (email) => {
   for (let user in users) {
@@ -86,26 +92,6 @@ app.post("/urls", (req, res) => {
   res.redirect(`/urls/${newID}`); 
 });
 
-app.post("/register", (req, res) => {
-  console.log(`user: ${req.body.email} password: ${req.body.password}`); // Log the POST request body to the console
-  if (!req.body.email || !req.body.password) {
-    return res.status(400).send("Username and Password cannot be blank.  \n");
-  }
-  if (getUserByEmail(req.body.email)) {
-    return res.status(400).send("User Already Exists.  \n");
-  }
-  if (!getUserByEmail(req.body.email)) {
-    let newID = generateRandomString();
-    console.log(`new user: ${newID}`);
-    users[newID] = {};
-    users[newID].id = newID;
-    users[newID].email = req.body.email;
-    users[newID].password = req.body.password;
-    console.log(users);
-    res.cookie("user_id", users[newID].id);
-    res.redirect(`/urls/`); 
-  }
-});
 
 
 app.post("/urls/:id/delete", (req, res) => {
@@ -126,6 +112,7 @@ app.post("/urls/:id/delete", (req, res) => {
   delete urlDatabase[req.params.id]; // deleting from filteredDatabase won't do a thing because it's not a global variable
   res.redirect(`/urls/`); 
 });
+
 
 app.post("/urls/:id", (req, res) => {
   if (!req.cookies.user_id) {
@@ -149,11 +136,33 @@ app.post("/urls/:id", (req, res) => {
   res.redirect(`/urls/`); 
 });
 
+app.post("/register", (req, res) => {
+  console.log(`user: ${req.body.email} password: ${req.body.password}`); // Log the POST request body to the console
+  if (!req.body.email || !req.body.password) {
+    return res.status(400).send("Username and Password cannot be blank.  \n");
+  }
+  if (getUserByEmail(req.body.email)) {
+    return res.status(400).send("User Already Exists.  \n");
+  }
+  if (!getUserByEmail(req.body.email)) {
+    let newID = generateRandomString();
+    console.log(`new user: ${newID}`);
+    users[newID] = {};
+    users[newID].id = newID;
+    users[newID].email = req.body.email;
+    const hashedPassword = bcrypt.hashSync(req.body.password, 10)
+    users[newID].password = hashedPassword;
+    console.log(users);
+    res.cookie("user_id", users[newID].id);
+    res.redirect(`/urls/`); 
+  }
+});
 
 app.post("/login", (req, res) => {
-  console.log(`login request for : ${req.body.email} using ${req.body.password}`); // Log the POST request body to the console
+  console.log(`login request for : ${req.body.email}`); // Log the POST request body to the console
   if (getUserByEmail(req.body.email)) {
-    if (getUserByEmail(req.body.email).password === req.body.password) {
+    let matchingPasswords = bcrypt.compareSync(req.body.password, getUserByEmail(req.body.email).password);
+    if (matchingPasswords) {
       console.log(getUserByEmail(req.body.email), "successfully logged in");
       res.cookie("user_id", getUserByEmail(req.body.email).id);
       return res.redirect(`/urls/`);  
