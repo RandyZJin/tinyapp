@@ -1,8 +1,9 @@
 const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
-const cookieParser = require('cookie-parser');
 const cookieSession = require('cookie-session');
+const {getUserByEmail, generateRandomString, urlsForUser} = require("./helpers.js");
+
 
 app.use(cookieSession({
   name: 'session',
@@ -12,42 +13,18 @@ app.use(cookieSession({
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
 }));
 
-// app.use(cookieParser());
-
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
 
-// the return varies digits hence slicing is done proportionate to length from end to ensure 6 digits.
-const generateRandomString = () => {
-  let output = Math.random().toString(36)
-  return output.slice(output.length - 6);
-};
-
-const urlsForUser = (id) => {
-  let filteredDatabase = {};
-  for (let ids in urlDatabase) {
-    if (urlDatabase[ids].userID === id) {
-      filteredDatabase[ids] = urlDatabase[ids];
-    }
-  }
-  // console.log(filteredDatabase);
-  return filteredDatabase;
-};
-
-// urlsForUser(req.cookies.user_id)
-// const urlDatabase = {
-//   "b2xVn2": "http://www.lighthouselabs.ca",
-//   "9sm5xK": "http://www.google.com"
-// };
 
 const urlDatabase = {
   "b2xVn2": {
     longURL: "http://www.lighthouselabs.ca",
-    userID: "test",
+    userID: "tester",
   }, 
   "9sm5xK": {
     longURL: "http://www.google.com",
-    userID: "test",
+    userID: "tester",
   },
   "y4nk33": {
     longURL: "https://www.yankees.com",
@@ -79,14 +56,15 @@ const users = {
 // const hashedPassword = bcrypt.hashSync(password, 10);
 
 
-const getUserByEmail = (email) => {
-  for (let user in users) {
-    if (users[user].email === email) {
-      return users[user];
-    }
-  }
-  return false;
-} 
+// const getUserByEmail = (email) => {
+//   for (let user in users) {
+//     if (users[user].email === email) {
+//       return users[user];
+//     }
+//   }
+//   return false;
+// } 
+
 
 
 app.post("/urls", (req, res) => {
@@ -112,7 +90,7 @@ app.post("/urls/:id/delete", (req, res) => {
     console.log("user action failed, item does not exist.");
     return res.send("Sorry, that item does not exist. \n");
   }
-  let filteredDatabase = urlsForUser(req.session.user_id);
+  let filteredDatabase = urlsForUser(req.session.user_id, urlDatabase);
   console.log(`${urlDatabase[req.params.id]} being deleted`); // Log the POST request body to the console
   if (!filteredDatabase[req.params.id]) {
     console.log("user action failed, insufficient access.");
@@ -132,7 +110,7 @@ app.post("/urls/:id", (req, res) => {
     console.log("user action failed, item does not exist.");
     return res.send("Sorry, that item does not exist. \n");
   }
-  let filteredDatabase = urlsForUser(req.session.user_id);
+  let filteredDatabase = urlsForUser(req.session.user_id, urlDatabase);
   console.log(`edit: ${req.params.id} being changed to ${req.body.longURL}`); // Log the POST request body to the console
   if (!filteredDatabase[req.params.id]) {
     console.log("user action failed, insufficient access.");
@@ -151,10 +129,10 @@ app.post("/register", (req, res) => {
   if (!req.body.email || !req.body.password) {
     return res.status(400).send("Username and Password cannot be blank.  \n");
   }
-  if (getUserByEmail(req.body.email)) {
+  if (getUserByEmail(req.body.email, users)) {
     return res.status(400).send("User Already Exists.  \n");
   }
-  if (!getUserByEmail(req.body.email)) {
+  if (!getUserByEmail(req.body.email, users)) {
     let newID = generateRandomString();
     console.log(`new user: ${newID}`);
     users[newID] = {};
@@ -170,11 +148,12 @@ app.post("/register", (req, res) => {
 
 app.post("/login", (req, res) => {
   console.log(`login request for : ${req.body.email}`); // Log the POST request body to the console
-  if (getUserByEmail(req.body.email)) {
-    let matchingPasswords = bcrypt.compareSync(req.body.password, getUserByEmail(req.body.email).password);
+  if (getUserByEmail(req.body.email, users)) {
+    let matchingPasswords = bcrypt.compareSync(req.body.password, getUserByEmail(req.body.email, users).password);
+    console.log(matchingPasswords)
     if (matchingPasswords) {
-      console.log(getUserByEmail(req.body.email).id, "successfully logged in");
-      req.session.user_id = getUserByEmail(req.body.email).id;
+      console.log(getUserByEmail(req.body.email, users).id, "successfully logged in");
+      req.session.user_id = getUserByEmail(req.body.email, users).id;
       return res.redirect(`/urls/`);  
     }
     return res.status(403).send("Username or password did not match our records.  Please attempt again. \n");
@@ -227,11 +206,12 @@ app.get("/urls", (req, res) => {
   if (!req.session.user_id) {
     return res.send("Sorry, this feature is for registered users only! \n");
   }
+  console.log(req.session.user_id)
   // console.log(req.cookies);
   // console.log(users[req.cookies.user_id].email)
   const templateVars = { 
     user: users[req.session.user_id],
-    urls: urlsForUser(req.session.user_id) 
+    urls: urlsForUser(req.session.user_id, urlDatabase) 
   };
   res.render("urls_index", templateVars);
 });
@@ -253,14 +233,14 @@ app.get("/urls/:id", (req, res) => {
   if (!req.session.user_id) {
     return res.send("Sorry, this feature is for registered users only! \n");
   }
-  let filteredDatabase = urlsForUser(req.session.user_id);
+  let filteredDatabase = urlsForUser(req.session.user_id, urlDatabase);
   if (!filteredDatabase[req.params.id]) {
     return res.send("Sorry, you do not have permission to view that! \n");
   }
   const templateVars = {
     user: users[req.session.user_id],
     id: req.params.id,
-    longURL: urlsForUser(req.session.user_id)[req.params.id].longURL
+    longURL: filteredDatabase[req.params.id].longURL
   };
   res.render("urls_show", templateVars);
 });
