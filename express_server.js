@@ -2,7 +2,17 @@ const express = require("express");
 const app = express();
 const PORT = 8080; // default port 8080
 const cookieParser = require('cookie-parser');
-app.use(cookieParser());
+const cookieSession = require('cookie-session');
+
+app.use(cookieSession({
+  name: 'session',
+  keys: ['correcthorsebatterystaple'],
+
+  // Cookie Options
+  maxAge: 24 * 60 * 60 * 1000 // 24 hours
+}));
+
+// app.use(cookieParser());
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
@@ -58,8 +68,8 @@ const users = {
     email: "user2@example.com",
     password: bcrypt.hashSync("dishwasher-funk", 10),
   },
-  test: {
-    id: "test",
+  tester: {
+    id: "tester",
     email: "bob@bob.com",
     password: bcrypt.hashSync("bob", 10),
   },
@@ -80,29 +90,29 @@ const getUserByEmail = (email) => {
 
 
 app.post("/urls", (req, res) => {
-  if (!req.cookies.user_id) {
-    return res.send("Sorry, this feature is for registered users only! \n")
+  if (!req.session.user_id) {
+    return res.send("Sorry, this feature is for registered users only! \n");
   }
   console.log(req.body); // Log the POST request body to the console
   let newID = generateRandomString();
   console.log(newID);
-  urlDatabase[newID] = {}
+  urlDatabase[newID] = {};
   urlDatabase[newID].longURL = req.body.longURL;
-  urlDatabase[newID].userID = req.cookies.user_id;
+  urlDatabase[newID].userID = req.session.user_id;
   res.redirect(`/urls/${newID}`); 
 });
 
 
 
 app.post("/urls/:id/delete", (req, res) => {
-  if (!req.cookies.user_id) {
-    return res.send("Sorry, this feature is for registered users only! \n")
+  if (!req.session.user_id) {
+    return res.send("Sorry, this feature is for registered users only! \n");
   }
   if (!urlDatabase[req.params.id]) {
     console.log("user action failed, item does not exist.");
     return res.send("Sorry, that item does not exist. \n");
   }
-  let filteredDatabase = urlsForUser(req.cookies.user_id);
+  let filteredDatabase = urlsForUser(req.session.user_id);
   console.log(`${urlDatabase[req.params.id]} being deleted`); // Log the POST request body to the console
   if (!filteredDatabase[req.params.id]) {
     console.log("user action failed, insufficient access.");
@@ -115,14 +125,14 @@ app.post("/urls/:id/delete", (req, res) => {
 
 
 app.post("/urls/:id", (req, res) => {
-  if (!req.cookies.user_id) {
-    return res.send("Sorry, this feature is for registered users only! \n")
+  if (!req.session.user_id) {
+    return res.send("Sorry, this feature is for registered users only! \n");
   }
   if (!urlDatabase[req.params.id]) {
     console.log("user action failed, item does not exist.");
     return res.send("Sorry, that item does not exist. \n");
   }
-  let filteredDatabase = urlsForUser(req.cookies.user_id);
+  let filteredDatabase = urlsForUser(req.session.user_id);
   console.log(`edit: ${req.params.id} being changed to ${req.body.longURL}`); // Log the POST request body to the console
   if (!filteredDatabase[req.params.id]) {
     console.log("user action failed, insufficient access.");
@@ -150,7 +160,7 @@ app.post("/register", (req, res) => {
     users[newID] = {};
     users[newID].id = newID;
     users[newID].email = req.body.email;
-    const hashedPassword = bcrypt.hashSync(req.body.password, 10)
+    const hashedPassword = bcrypt.hashSync(req.body.password, 10);
     users[newID].password = hashedPassword;
     console.log(users);
     res.cookie("user_id", users[newID].id);
@@ -163,8 +173,8 @@ app.post("/login", (req, res) => {
   if (getUserByEmail(req.body.email)) {
     let matchingPasswords = bcrypt.compareSync(req.body.password, getUserByEmail(req.body.email).password);
     if (matchingPasswords) {
-      console.log(getUserByEmail(req.body.email), "successfully logged in");
-      res.cookie("user_id", getUserByEmail(req.body.email).id);
+      console.log(getUserByEmail(req.body.email).id, "successfully logged in");
+      req.session.user_id = getUserByEmail(req.body.email).id;
       return res.redirect(`/urls/`);  
     }
     return res.status(403).send("Username or password did not match our records.  Please attempt again. \n");
@@ -175,38 +185,37 @@ app.post("/login", (req, res) => {
 
 
 app.post("/logout", (req, res) => {
-  console.log(`logout request for : ${req.cookies["user"]}`); // Log the POST request body to the console
-  res.clearCookie("user_id")
-  // let updateID = req.params.id;
-  // urlDatabase[updateID] = req.body.longURL;
-  res.redirect(`/login/`); 
+  console.log(`logout request for : ${req.session.user_id}`); // Log the POST request body to the console
+  // res.clearCookie("user_id")
+  setTimeout(()=>req.session = null, 100);
+  setTimeout(()=> res.redirect(`/login/`), 300);
 });
 
 app.get("/", (req, res) => {
-  console.log(req.cookies.user_id); // test page
+  console.log(req.session.user_id); // test page
   res.send("Hello!");
 });
 
 app.get("/login", (req, res) => {
-  if (req.cookies.user_id) {
+  if (req.session.user_id) {
     return res.redirect(`/urls/`);
   }
-  console.log(req.cookies);
+  // console.log(req.session);
   // console.log(users[req.cookies.user_id].email)
   const templateVars = { 
-    user: users[req.cookies.user_id],
+    user: users[req.session.user_id],
   };
   res.render("login", templateVars);
 });
 
 app.get("/register", (req, res) => {
-  if (req.cookies.user_id) {
+  if (req.session.user_id) {
     return res.redirect(`/urls/`);
   }
-  console.log(users)
-  console.log(users[req.cookies.user_id])
+  console.log(users);
+  console.log(users[req.session.user_id]);
   const templateVars = {
-    user_id: req.cookies["user_id"],
+    user_id: req.session.user_id,
     id: req.params.id,
     // longURL: urlsForUser(req.cookies.user_id)[req.params.id].longURL
   };
@@ -214,24 +223,25 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
-  if (!req.cookies.user_id) {
-    return res.send("Sorry, this feature is for registered users only! \n")
+  // console.log("testing user id: ", req.session.user_id);
+  if (!req.session.user_id) {
+    return res.send("Sorry, this feature is for registered users only! \n");
   }
   // console.log(req.cookies);
   // console.log(users[req.cookies.user_id].email)
   const templateVars = { 
-    user: users[req.cookies.user_id],
-    urls: urlsForUser(req.cookies.user_id) 
+    user: users[req.session.user_id],
+    urls: urlsForUser(req.session.user_id) 
   };
   res.render("urls_index", templateVars);
 });
 
 app.get("/urls/new", (req, res) => {
-  if (!req.cookies.user_id) {
+  if (!req.session.user_id) {
     return res.redirect(`/login/`);
   }
   const templateVars = {
-    user: users[req.cookies.user_id],
+    user: users[req.session.user_id],
     id: req.params.id,
     // longURL: urlDatabase[req.params.id].longURL
   };
@@ -240,24 +250,24 @@ app.get("/urls/new", (req, res) => {
 
 app.get("/urls/:id", (req, res) => {
   // console.log(urlDatabase[req.params.id])
-  if (!req.cookies.user_id) {
-    return res.send("Sorry, this feature is for registered users only! \n")
+  if (!req.session.user_id) {
+    return res.send("Sorry, this feature is for registered users only! \n");
   }
-  let filteredDatabase = urlsForUser(req.cookies.user_id);
+  let filteredDatabase = urlsForUser(req.session.user_id);
   if (!filteredDatabase[req.params.id]) {
-    return res.send("Sorry, you do not have permission to view that! \n")
+    return res.send("Sorry, you do not have permission to view that! \n");
   }
   const templateVars = {
-    user: users[req.cookies.user_id],
+    user: users[req.session.user_id],
     id: req.params.id,
-    longURL: urlsForUser(req.cookies.user_id)[req.params.id].longURL
+    longURL: urlsForUser(req.session.user_id)[req.params.id].longURL
   };
   res.render("urls_show", templateVars);
 });
 
 app.get("/u/:id", (req, res) => {
   if (!urlDatabase[req.params.id]) {
-    return res.send("Sorry, this link does not exist! \n")
+    return res.send("Sorry, this link does not exist! \n");
   }
   const longURL = urlDatabase[req.params.id].longURL;
   res.redirect(longURL);
