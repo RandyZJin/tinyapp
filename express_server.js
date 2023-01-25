@@ -35,7 +35,7 @@ const users = {
 const getUserByEmail = (email) => {
   for (let user in users) {
     if (users[user].email === email) {
-      return true;
+      return users[user];
     }
   }
   return false;
@@ -51,22 +51,14 @@ app.post("/urls", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
-  console.log(req.body.email, req.body.password); // Log the POST request body to the console
-  let error = false;
+  console.log(`user: ${req.body.email} password: ${req.body.password}`); // Log the POST request body to the console
   if (!req.body.email || !req.body.password) {
-    res.status(400).send("Username and Password cannot be blank.");
-    error = true;
+    return res.status(400).send("Username and Password cannot be blank.");
   }
   if (getUserByEmail(req.body.email)) {
-    res.status(400).send("User Already Exists");
+    return res.status(400).send("User Already Exists");
   }
-  // for (let key  in users) {
-  //   if (users[key].email === req.body.email) {
-  //     res.status(400).send("User Already Exists");
-  //     error = true;
-  //   }
-  // }
-  if (!error && !getUserByEmail(req.body.email)) {
+  if (!getUserByEmail(req.body.email)) {
     let newID = generateRandomString();
     console.log(`new user: ${newID}`);
     users[newID] = {};
@@ -95,30 +87,46 @@ app.post("/urls/:id", (req, res) => {
 
 
 app.post("/login", (req, res) => {
-  console.log(`login request for : ${req.body.username}`); // Log the POST request body to the console
-  res.cookie("user", req.body.username)
-  res.redirect(`/urls/`); 
+  console.log(`login request for : ${req.body.email} using ${req.body.password}`); // Log the POST request body to the console
+  if (getUserByEmail(req.body.email)) {
+    if (getUserByEmail(req.body.email).password === req.body.password) {
+      console.log(getUserByEmail(req.body.email), "successfully logged in");
+      res.cookie("user_id", getUserByEmail(req.body.email).id);
+      return res.redirect(`/urls/`);  
+    }
+    return res.status(403).send("Username or password did not match our records.  Please attempt again.");
+  }
+  return res.status(403).send("Username or password did not match our records.  Please attempt again.");
+
 });
 
 
 app.post("/logout", (req, res) => {
   console.log(`logout request for : ${req.cookies["user"]}`); // Log the POST request body to the console
-  res.clearCookie("user")
-  // res.cookie("user", req.body.username)
+  res.clearCookie("user_id")
   // let updateID = req.params.id;
   // urlDatabase[updateID] = req.body.longURL;
-  res.redirect(`/urls/`); 
+  res.redirect(`/login/`); 
 });
 
 app.get("/", (req, res) => {
   res.send("Hello!");
 });
 
+app.get("/login", (req, res) => {
+  console.log(req.cookies);
+  // console.log(users[req.cookies.user_id].email)
+  const templateVars = { 
+    user: users[req.cookies.user_id],
+    urls: urlDatabase 
+  };
+  res.render("login", templateVars);
+});
+
 app.get("/register", (req, res) => {
   console.log(users)
   console.log(users[req.cookies.user_id])
   const templateVars = {
-    username: req.cookies["user"],
     user_id: req.cookies["user_id"],
     id: req.params.id,
     longURL: urlDatabase[req.params.id]
@@ -130,7 +138,6 @@ app.get("/urls", (req, res) => {
   // console.log(req.cookies);
   // console.log(users[req.cookies.user_id].email)
   const templateVars = { 
-    username: req.cookies["user"],
     user: users[req.cookies.user_id],
     urls: urlDatabase 
   };
@@ -139,7 +146,6 @@ app.get("/urls", (req, res) => {
 
 app.get("/urls/new", (req, res) => {
   const templateVars = {
-    username: req.cookies["user"],
     user: users[req.cookies.user_id],
     id: req.params.id,
     longURL: urlDatabase[req.params.id]
@@ -150,7 +156,6 @@ app.get("/urls/new", (req, res) => {
 app.get("/urls/:id", (req, res) => {
   // console.log(urlDatabase[req.params.id])
   const templateVars = {
-    username: req.cookies["user"],
     user: users[req.cookies.user_id],
     id: req.params.id,
     longURL: urlDatabase[req.params.id]
