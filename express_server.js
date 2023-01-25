@@ -43,6 +43,9 @@ const getUserByEmail = (email) => {
 
 
 app.post("/urls", (req, res) => {
+  if (!req.cookies.user_id) {
+    return res.send("Sorry, this feature is for registered users only!" + "\n")
+  }
   console.log(req.body); // Log the POST request body to the console
   let newID = generateRandomString();
   console.log(newID);
@@ -79,6 +82,7 @@ app.post("/urls/:id/delete", (req, res) => {
 });
 
 app.post("/urls/:id", (req, res) => {
+
   console.log(`edit: ${req.params.id} being changed to ${req.body.longURL}`); // Log the POST request body to the console
   let updateID = req.params.id;
   urlDatabase[updateID] = req.body.longURL;
@@ -110,10 +114,14 @@ app.post("/logout", (req, res) => {
 });
 
 app.get("/", (req, res) => {
+  console.log(req.cookies.user_id); // test page
   res.send("Hello!");
 });
 
 app.get("/login", (req, res) => {
+  if (req.cookies.user_id) {
+    return res.redirect(`/urls/`);
+  }
   console.log(req.cookies);
   // console.log(users[req.cookies.user_id].email)
   const templateVars = { 
@@ -124,6 +132,9 @@ app.get("/login", (req, res) => {
 });
 
 app.get("/register", (req, res) => {
+  if (req.cookies.user_id) {
+    return res.redirect(`/urls/`);
+  }
   console.log(users)
   console.log(users[req.cookies.user_id])
   const templateVars = {
@@ -135,6 +146,9 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/urls", (req, res) => {
+  // if (!req.cookies.user_id) {
+  //   return res.send("Sorry, this feature is for registered users only!")
+  // }
   // console.log(req.cookies);
   // console.log(users[req.cookies.user_id].email)
   const templateVars = { 
@@ -145,6 +159,9 @@ app.get("/urls", (req, res) => {
 });
 
 app.get("/urls/new", (req, res) => {
+  if (!req.cookies.user_id) {
+    return res.redirect(`/login/`);
+  }
   const templateVars = {
     user: users[req.cookies.user_id],
     id: req.params.id,
@@ -164,6 +181,9 @@ app.get("/urls/:id", (req, res) => {
 });
 
 app.get("/u/:id", (req, res) => {
+  if (!urlDatabase[req.params.id]) {
+    return res.send("Sorry, this link does not exist!")
+  }
   const longURL = urlDatabase[req.params.id];
   res.redirect(longURL);
 });
