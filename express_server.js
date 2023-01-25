@@ -75,7 +75,7 @@ const getUserByEmail = (email) => {
 
 app.post("/urls", (req, res) => {
   if (!req.cookies.user_id) {
-    return res.send("Sorry, this feature is for registered users only!" + "\n")
+    return res.send("Sorry, this feature is for registered users only! \n")
   }
   console.log(req.body); // Log the POST request body to the console
   let newID = generateRandomString();
@@ -89,10 +89,10 @@ app.post("/urls", (req, res) => {
 app.post("/register", (req, res) => {
   console.log(`user: ${req.body.email} password: ${req.body.password}`); // Log the POST request body to the console
   if (!req.body.email || !req.body.password) {
-    return res.status(400).send("Username and Password cannot be blank.");
+    return res.status(400).send("Username and Password cannot be blank.  \n");
   }
   if (getUserByEmail(req.body.email)) {
-    return res.status(400).send("User Already Exists");
+    return res.status(400).send("User Already Exists.  \n");
   }
   if (!getUserByEmail(req.body.email)) {
     let newID = generateRandomString();
@@ -109,13 +109,38 @@ app.post("/register", (req, res) => {
 
 
 app.post("/urls/:id/delete", (req, res) => {
+  if (!req.cookies.user_id) {
+    return res.send("Sorry, this feature is for registered users only! \n")
+  }
+  if (!urlDatabase[req.params.id]) {
+    console.log("user action failed, item does not exist.");
+    return res.send("Sorry, that item does not exist. \n");
+  }
+  let filteredDatabase = urlsForUser(req.cookies.user_id);
   console.log(`${urlDatabase[req.params.id]} being deleted`); // Log the POST request body to the console
-  delete urlDatabase[req.params.id];
+  if (!filteredDatabase[req.params.id]) {
+    console.log("user action failed, insufficient access.");
+    return res.send("Sorry, you do not have permission to delete that! \n");
+  }
+
+  delete urlDatabase[req.params.id]; // deleting from filteredDatabase won't do a thing because it's not a global variable
   res.redirect(`/urls/`); 
 });
 
 app.post("/urls/:id", (req, res) => {
+  if (!req.cookies.user_id) {
+    return res.send("Sorry, this feature is for registered users only! \n")
+  }
+  if (!urlDatabase[req.params.id]) {
+    console.log("user action failed, item does not exist.");
+    return res.send("Sorry, that item does not exist. \n");
+  }
+  let filteredDatabase = urlsForUser(req.cookies.user_id);
   console.log(`edit: ${req.params.id} being changed to ${req.body.longURL}`); // Log the POST request body to the console
+  if (!filteredDatabase[req.params.id]) {
+    console.log("user action failed, insufficient access.");
+    return res.send("Sorry, you do not have permission to edit that! \n");
+  }
   let updateID = req.params.id;
   if (!urlDatabase[updateID]) {
     urlDatabase[updateID] = {};
@@ -133,9 +158,9 @@ app.post("/login", (req, res) => {
       res.cookie("user_id", getUserByEmail(req.body.email).id);
       return res.redirect(`/urls/`);  
     }
-    return res.status(403).send("Username or password did not match our records.  Please attempt again.");
+    return res.status(403).send("Username or password did not match our records.  Please attempt again. \n");
   }
-  return res.status(403).send("Username or password did not match our records.  Please attempt again.");
+  return res.status(403).send("Username or password did not match our records.  Please attempt again. \n");
 
 });
 
@@ -181,7 +206,7 @@ app.get("/register", (req, res) => {
 
 app.get("/urls", (req, res) => {
   if (!req.cookies.user_id) {
-    return res.send("Sorry, this feature is for registered users only!")
+    return res.send("Sorry, this feature is for registered users only! \n")
   }
   // console.log(req.cookies);
   // console.log(users[req.cookies.user_id].email)
@@ -206,6 +231,13 @@ app.get("/urls/new", (req, res) => {
 
 app.get("/urls/:id", (req, res) => {
   // console.log(urlDatabase[req.params.id])
+  if (!req.cookies.user_id) {
+    return res.send("Sorry, this feature is for registered users only! \n")
+  }
+  let filteredDatabase = urlsForUser(req.cookies.user_id);
+  if (!filteredDatabase[req.params.id]) {
+    return res.send("Sorry, you do not have permission to view that! \n")
+  }
   const templateVars = {
     user: users[req.cookies.user_id],
     id: req.params.id,
@@ -216,7 +248,7 @@ app.get("/urls/:id", (req, res) => {
 
 app.get("/u/:id", (req, res) => {
   if (!urlDatabase[req.params.id]) {
-    return res.send("Sorry, this link does not exist!")
+    return res.send("Sorry, this link does not exist! \n")
   }
   const longURL = urlDatabase[req.params.id].longURL;
   res.redirect(longURL);
