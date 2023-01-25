@@ -7,7 +7,7 @@ app.use(cookieParser());
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
 
-
+// the return varies digits hence slicing is done proportionate to length from end to ensure 6 digits.
 function generateRandomString() {
   let output = Math.random().toString(36)
   return output.slice(output.length - 6);
@@ -32,6 +32,15 @@ const users = {
   },
 };
 
+const getUserByEmail = (email) => {
+  for (let user in users) {
+    if (users[user].email === email) {
+      return true;
+    }
+  }
+  return false;
+} 
+
 
 app.post("/urls", (req, res) => {
   console.log(req.body); // Log the POST request body to the console
@@ -43,15 +52,31 @@ app.post("/urls", (req, res) => {
 
 app.post("/register", (req, res) => {
   console.log(req.body.email, req.body.password); // Log the POST request body to the console
-  let newID = generateRandomString();
-  console.log(`new user: ${newID}`);
-  users[newID] = {};
-  users[newID].id = newID;
-  users[newID].email = req.body.email;
-  users[newID].password = req.body.password;
-  console.log(users);
-  res.cookie("user_id", users[newID].id);
-  res.redirect(`/urls/`); 
+  let error = false;
+  if (!req.body.email || !req.body.password) {
+    res.status(400).send("Username and Password cannot be blank.");
+    error = true;
+  }
+  if (getUserByEmail(req.body.email)) {
+    res.status(400).send("User Already Exists");
+  }
+  // for (let key  in users) {
+  //   if (users[key].email === req.body.email) {
+  //     res.status(400).send("User Already Exists");
+  //     error = true;
+  //   }
+  // }
+  if (!error && !getUserByEmail(req.body.email)) {
+    let newID = generateRandomString();
+    console.log(`new user: ${newID}`);
+    users[newID] = {};
+    users[newID].id = newID;
+    users[newID].email = req.body.email;
+    users[newID].password = req.body.password;
+    console.log(users);
+    res.cookie("user_id", users[newID].id);
+    res.redirect(`/urls/`); 
+  }
 });
 
 
