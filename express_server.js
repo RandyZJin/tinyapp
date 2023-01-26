@@ -7,7 +7,7 @@ const {getUserByEmail, generateRandomString, urlsForUser} = require("./helpers.j
 
 app.use(cookieSession({
   name: 'session',
-  keys: ['correcthorsebatterystaple'],
+  keys: ['correcthorsebatterystaple', 'littlebobbytables', 'listening'],
 
   // Cookie Options
   maxAge: 24 * 60 * 60 * 1000 // 24 hours
@@ -52,34 +52,18 @@ const users = {
   },
 };
 
-// const password = "purple-monkey-dinosaur"; // found in the req.body object
-// const hashedPassword = bcrypt.hashSync(password, 10);
-
-
-// const getUserByEmail = (email) => {
-//   for (let user in users) {
-//     if (users[user].email === email) {
-//       return users[user];
-//     }
-//   }
-//   return false;
-// } 
-
-
-
 app.post("/urls", (req, res) => {
   if (!req.session.user_id) {
     return res.send("Sorry, this feature is for registered users only! \n");
   }
   console.log(req.body); // Log the POST request body to the console
   let newID = generateRandomString();
-  console.log(newID);
+  console.log(`new link registered at ${newID}`);
   urlDatabase[newID] = {};
   urlDatabase[newID].longURL = req.body.longURL;
   urlDatabase[newID].userID = req.session.user_id;
   res.redirect(`/urls/${newID}`); 
 });
-
 
 
 app.post("/urls/:id/delete", (req, res) => {
@@ -125,7 +109,7 @@ app.post("/urls/:id", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
-  console.log(`user: ${req.body.email} password: ${req.body.password}`); // Log the POST request body to the console
+  console.log(`user: ${req.body.email} being registered`); // Log the POST request body to the console
   if (!req.body.email || !req.body.password) {
     return res.status(400).send("Username and Password cannot be blank.  \n");
   }
@@ -134,39 +118,36 @@ app.post("/register", (req, res) => {
   }
   if (!getUserByEmail(req.body.email, users)) {
     let newID = generateRandomString();
-    console.log(`new user: ${newID}`);
+    console.log(`new user: ${req.body.email} under ${newID}`);
     users[newID] = {};
     users[newID].id = newID;
     users[newID].email = req.body.email;
     const hashedPassword = bcrypt.hashSync(req.body.password, 10);
     users[newID].password = hashedPassword;
-    console.log(users);
-    res.cookie("user_id", users[newID].id);
+    console.log(`userbase now persists of ${users}`);
+    req.session.user_id = users[newID].id;
     res.redirect(`/urls/`); 
   }
 });
 
 app.post("/login", (req, res) => {
   console.log(`login request for : ${req.body.email}`); // Log the POST request body to the console
-  if (getUserByEmail(req.body.email, users)) {
-    let matchingPasswords = bcrypt.compareSync(req.body.password, getUserByEmail(req.body.email, users).password);
-    console.log(matchingPasswords)
-    if (matchingPasswords) {
-      console.log(getUserByEmail(req.body.email, users).id, "successfully logged in");
-      req.session.user_id = getUserByEmail(req.body.email, users).id;
-      return res.redirect(`/urls/`);  
-    }
+  if (!getUserByEmail(req.body.email, users)) {
     return res.status(403).send("Username or password did not match our records.  Please attempt again. \n");
   }
-  return res.status(403).send("Username or password did not match our records.  Please attempt again. \n");
-
+  let matchingPasswords = bcrypt.compareSync(req.body.password, getUserByEmail(req.body.email, users).password);
+  if (!matchingPasswords) {
+    return res.status(403).send("Username or password did not match our records.  Please attempt again. \n");
+  }
+  console.log(getUserByEmail(req.body.email, users).id, "successfully logged in");
+  req.session.user_id = getUserByEmail(req.body.email, users).id;
+  return res.redirect(`/urls/`);  
 });
 
 
 app.post("/logout", (req, res) => {
   console.log(`logout request for : ${req.session.user_id}`); // Log the POST request body to the console
-  // res.clearCookie("user_id")
-  setTimeout(()=>req.session = null, 100);
+  setTimeout(()=> req.session = null, 100);
   setTimeout(()=> res.redirect(`/login/`), 300);
 });
 
@@ -179,8 +160,6 @@ app.get("/login", (req, res) => {
   if (req.session.user_id) {
     return res.redirect(`/urls/`);
   }
-  // console.log(req.session);
-  // console.log(users[req.cookies.user_id].email)
   const templateVars = { 
     user: users[req.session.user_id],
   };
@@ -191,24 +170,17 @@ app.get("/register", (req, res) => {
   if (req.session.user_id) {
     return res.redirect(`/urls/`);
   }
-  console.log(users);
-  console.log(users[req.session.user_id]);
   const templateVars = {
-    user_id: req.session.user_id,
+    user: users[req.session.user_id],
     id: req.params.id,
-    // longURL: urlsForUser(req.cookies.user_id)[req.params.id].longURL
   };
   res.render("register", templateVars);
 });
 
 app.get("/urls", (req, res) => {
-  // console.log("testing user id: ", req.session.user_id);
   if (!req.session.user_id) {
     return res.send("Sorry, this feature is for registered users only! \n");
   }
-  console.log(req.session.user_id)
-  // console.log(req.cookies);
-  // console.log(users[req.cookies.user_id].email)
   const templateVars = { 
     user: users[req.session.user_id],
     urls: urlsForUser(req.session.user_id, urlDatabase) 
@@ -223,13 +195,11 @@ app.get("/urls/new", (req, res) => {
   const templateVars = {
     user: users[req.session.user_id],
     id: req.params.id,
-    // longURL: urlDatabase[req.params.id].longURL
   };
   res.render("urls_new", templateVars);
 });
 
 app.get("/urls/:id", (req, res) => {
-  // console.log(urlDatabase[req.params.id])
   if (!req.session.user_id) {
     return res.send("Sorry, this feature is for registered users only! \n");
   }
@@ -254,7 +224,11 @@ app.get("/u/:id", (req, res) => {
 });
 
 app.get("/urls.json", (req, res) => {
-  res.json(urlDatabase);
+  if (!req.session.user_id) {
+    return res.send("Sorry, this feature is for registered users only! \n");
+  }
+  let filteredDatabase = urlsForUser(req.session.user_id, urlDatabase);
+  res.json(filteredDatabase);
 });
 
 app.get("/hello", (req, res) => {
