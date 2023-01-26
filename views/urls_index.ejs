@@ -32,8 +32,8 @@
             <tr>
               <td><%= id %></td>
               <td><%= urls[id].longURL %></td>
-              <td><form method="get" action="/urls/<%= id %>"><button style ="background-color: white; border-color: blue; color: blue">Edit</button></form></td>
-              <td><form method="POST" action="/urls/<%= id %>/delete"><button style ="background-color: white; border-color: red; color: red">Delete</button></form></td>
+              <td><form method="GET" action="/urls/<%= id %>"><button style ="background-color: white; border-color: blue; color: blue">Edit</button></form></td>
+              <td><form method="POST" action="/urls/<%= id %>?_method=DELETE"><button style ="background-color: white; border-color: red; color: red">Delete</button></form></td>
             </tr>
           <% } %>
         </tbody>

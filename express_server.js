@@ -1,8 +1,10 @@
 const express = require("express");
+const methodOverride = require('method-override');
 const app = express();
 const PORT = 8080; // default port 8080
 const cookieSession = require('cookie-session');
 const {getUserByEmail, generateRandomString, urlsForUser} = require("./helpers.js");
+
 
 
 app.use(cookieSession({
@@ -15,7 +17,7 @@ app.use(cookieSession({
 
 app.set("view engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
-
+app.use(methodOverride('_method'));
 
 const urlDatabase = {
   "b2xVn2": {
@@ -63,49 +65,6 @@ app.post("/urls", (req, res) => {
   urlDatabase[newID].longURL = req.body.longURL;
   urlDatabase[newID].userID = req.session.user_id;
   res.redirect(`/urls/${newID}`); 
-});
-
-
-app.post("/urls/:id/delete", (req, res) => {
-  if (!req.session.user_id) {
-    return res.send("Sorry, this feature is for registered users only! \n");
-  }
-  if (!urlDatabase[req.params.id]) {
-    console.log("user action failed, item does not exist.");
-    return res.send("Sorry, that item does not exist. \n");
-  }
-  let filteredDatabase = urlsForUser(req.session.user_id, urlDatabase);
-  console.log(`${urlDatabase[req.params.id]} being deleted`); // Log the POST request body to the console
-  if (!filteredDatabase[req.params.id]) {
-    console.log("user action failed, insufficient access.");
-    return res.send("Sorry, you do not have permission to delete that! \n");
-  }
-
-  delete urlDatabase[req.params.id]; // deleting from filteredDatabase won't do a thing because it's not a global variable
-  res.redirect(`/urls/`); 
-});
-
-
-app.post("/urls/:id", (req, res) => {
-  if (!req.session.user_id) {
-    return res.send("Sorry, this feature is for registered users only! \n");
-  }
-  if (!urlDatabase[req.params.id]) {
-    console.log("user action failed, item does not exist.");
-    return res.send("Sorry, that item does not exist. \n");
-  }
-  let filteredDatabase = urlsForUser(req.session.user_id, urlDatabase);
-  console.log(`edit: ${req.params.id} being changed to ${req.body.longURL}`); // Log the POST request body to the console
-  if (!filteredDatabase[req.params.id]) {
-    console.log("user action failed, insufficient access.");
-    return res.send("Sorry, you do not have permission to edit that! \n");
-  }
-  let updateID = req.params.id;
-  if (!urlDatabase[updateID]) {
-    urlDatabase[updateID] = {};
-  }
-  urlDatabase[updateID].longURL = req.body.longURL;
-  res.redirect(`/urls/`); 
 });
 
 app.post("/register", (req, res) => {
@@ -175,6 +134,47 @@ app.get("/register", (req, res) => {
     id: req.params.id,
   };
   res.render("register", templateVars);
+});
+
+app.put("/urls/:id", (req, res) => {
+  if (!req.session.user_id) {
+    return res.send("Sorry, this feature is for registered users only! \n");
+  }
+  if (!urlDatabase[req.params.id]) {
+    console.log("user action failed, item does not exist.");
+    return res.send("Sorry, that item does not exist. \n");
+  }
+  let filteredDatabase = urlsForUser(req.session.user_id, urlDatabase);
+  console.log(`edit: ${req.params.id} being changed to ${req.body.longURL}`); // Log the POST request body to the console
+  if (!filteredDatabase[req.params.id]) {
+    console.log("user action failed, insufficient access.");
+    return res.send("Sorry, you do not have permission to edit that! \n");
+  }
+  let updateID = req.params.id;
+  if (!urlDatabase[updateID]) {
+    urlDatabase[updateID] = {};
+  }
+  urlDatabase[updateID].longURL = req.body.longURL;
+  res.redirect(`/urls/`); 
+});
+
+app.delete("/urls/:id", (req, res) => {
+  if (!req.session.user_id) {
+    return res.send("Sorry, this feature is for registered users only! \n");
+  }
+  if (!urlDatabase[req.params.id]) {
+    console.log("user action failed, item does not exist.");
+    return res.send("Sorry, that item does not exist. \n");
+  }
+  let filteredDatabase = urlsForUser(req.session.user_id, urlDatabase);
+  console.log(req.params.id +" is requested to be deleted"); // Log the POST request body to the console
+  if (!filteredDatabase[req.params.id]) {
+    console.log("user action failed, insufficient access.");
+    return res.send("Sorry, you do not have permission to delete that! \n");
+  }
+
+  delete urlDatabase[req.params.id];    // deleting from filteredDatabase won't do a thing because it's not a global variable
+  res.redirect(`/urls/`); 
 });
 
 app.get("/urls", (req, res) => {
