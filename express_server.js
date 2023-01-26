@@ -4,8 +4,7 @@ const app = express();
 const PORT = 8080; // default port 8080
 const cookieSession = require('cookie-session');
 const {getUserByEmail, generateRandomString, urlsForUser} = require("./helpers.js");
-
-
+const bcrypt = require("bcryptjs");
 
 app.use(cookieSession({
   name: 'session',
@@ -53,8 +52,6 @@ const urlDatabase = {
   } 
 };
 
-const bcrypt = require("bcryptjs");
-
 const users = {
   userRandomID: {
     id: "userRandomID",
@@ -77,7 +74,7 @@ app.post("/urls", (req, res) => {
   if (!req.session.user_id) {
     return res.send("Sorry, this feature is for registered users only! \n");
   }
-  console.log(req.body); // Log the POST request body to the console
+  console.log(req.body); 
   let newID = generateRandomString();
   console.log(`new link registered at ${newID}`);
   urlDatabase[newID] = {};
@@ -93,7 +90,7 @@ app.post("/urls", (req, res) => {
 });
 
 app.post("/register", (req, res) => {
-  console.log(`user: ${req.body.email} being registered`); // Log the POST request body to the console
+  console.log(`user: ${req.body.email} being registered`); 
   if (!req.body.email || !req.body.password) {
     return res.status(400).send("Username and Password cannot be blank.  \n");
   }
@@ -115,7 +112,7 @@ app.post("/register", (req, res) => {
 });
 
 app.post("/login", (req, res) => {
-  console.log(`login request for : ${req.body.email}`); // Log the POST request body to the console
+  console.log(`login request for : ${req.body.email}`); 
   if (!getUserByEmail(req.body.email, users)) {
     return res.status(403).send("Username or password did not match our records.  Please attempt again. \n");
   }
@@ -130,7 +127,7 @@ app.post("/login", (req, res) => {
 
 
 app.post("/logout", (req, res) => {
-  console.log(`logout request for : ${req.session.user_id}`); // Log the POST request body to the console
+  console.log(`logout request for : ${req.session.user_id}`); 
   setTimeout(()=> req.session = null, 100); 
   setTimeout(()=> res.redirect(`/login/`), 300);
 });
@@ -172,7 +169,7 @@ app.put("/urls/:id", (req, res) => {
     return res.send("Sorry, that item does not exist. \n");
   }
   let filteredDatabase = urlsForUser(req.session.user_id, urlDatabase);
-  console.log(`edit: ${req.params.id} being changed to ${req.body.longURL}`); // Log the POST request body to the console
+  console.log(`edit: ${req.params.id} being changed to ${req.body.longURL}`); 
   if (!filteredDatabase[req.params.id]) {
     console.log("user action failed, insufficient access.");
     return res.send("Sorry, you do not have permission to edit that! \n");
@@ -269,7 +266,6 @@ app.get("/urls.json", (req, res) => {
   let filteredDatabase = urlsForUser(req.session.user_id, urlDatabase);
   res.json(filteredDatabase);
 });
-
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
