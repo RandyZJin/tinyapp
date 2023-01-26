@@ -28,7 +28,7 @@ const urlDatabase = {
       visitors: [],
       visitingTime: [],
     }
-  }, 
+  },
   "9sm5xK": {
     longURL: "http://www.google.com",
     userID: "tester",
@@ -48,7 +48,7 @@ const urlDatabase = {
       visitors: [],
       visitingTime: [],
     }
-  } 
+  }
 };
 
 const users = {
@@ -73,7 +73,7 @@ app.post("/urls", (req, res) => {
   if (!req.session.user_id) {
     return res.send("Sorry, this feature is for registered users only! \n");
   }
-  console.log(req.body); 
+  console.log(req.body);
   let newID = generateRandomString();
   console.log(`new link registered at ${newID}`);
   urlDatabase[newID] = {};
@@ -85,11 +85,11 @@ app.post("/urls", (req, res) => {
     visitors: [],
     visitingTime: [],
   };
-  res.redirect(`/urls/${newID}`); 
+  res.redirect(`/urls/${newID}`);
 });
 
 app.post("/register", (req, res) => {
-  console.log(`user: ${req.body.email} being registered`); 
+  console.log(`user: ${req.body.email} being registered`);
   if (!req.body.email || !req.body.password) {
     return res.status(400).send("Username and Password cannot be blank.  \n");
   }
@@ -108,12 +108,12 @@ app.post("/register", (req, res) => {
     };
     console.log(`userbase now persists of ${users}`);
     req.session.user_id = users[newID].id;
-    res.redirect(`/urls/`); 
+    res.redirect(`/urls/`);
   }
 });
 
 app.post("/login", (req, res) => {
-  console.log(`login request for : ${req.body.email}`); 
+  console.log(`login request for : ${req.body.email}`);
   if (!getUserByEmail(req.body.email, users)) {
     return res.status(403).send("Username or password did not match our records.  Please attempt again. \n");
   }
@@ -123,13 +123,13 @@ app.post("/login", (req, res) => {
   }
   console.log(getUserByEmail(req.body.email, users).id, "successfully logged in");
   req.session.user_id = getUserByEmail(req.body.email, users).id;
-  return res.redirect(`/urls/`);  
+  return res.redirect(`/urls/`);
 });
 
 
 app.post("/logout", (req, res) => {
-  console.log(`logout request for : ${req.session.user_id}`); 
-  setTimeout(()=> req.session.user_id = null, 100); 
+  console.log(`logout request for : ${req.session.user_id}`);
+  setTimeout(()=> req.session.user_id = null, 100);
   setTimeout(()=> res.redirect(`/login/`), 300);
 });
 
@@ -144,7 +144,7 @@ app.get("/login", (req, res) => {
   if (req.session.user_id) {
     return res.redirect(`/urls/`);
   }
-  const templateVars = { 
+  const templateVars = {
     user: users[req.session.user_id],
   };
   res.render("login", templateVars);
@@ -170,7 +170,7 @@ app.put("/urls/:id", (req, res) => {
     return res.send("Sorry, that item does not exist. \n");
   }
   let filteredDatabase = urlsForUser(req.session.user_id, urlDatabase);
-  console.log(`edit: ${req.params.id} being changed to ${req.body.longURL}`); 
+  console.log(`edit: ${req.params.id} being changed to ${req.body.longURL}`);
   if (!filteredDatabase[req.params.id]) {
     console.log("user action failed, insufficient access.");
     return res.send("Sorry, you do not have permission to edit that! \n");
@@ -180,7 +180,7 @@ app.put("/urls/:id", (req, res) => {
     urlDatabase[updateID] = {};
   }
   urlDatabase[updateID].longURL = req.body.longURL;
-  res.redirect(`/urls/`); 
+  res.redirect(`/urls/`);
 });
 
 app.delete("/urls/:id", (req, res) => {
@@ -192,20 +192,20 @@ app.delete("/urls/:id", (req, res) => {
     return res.send("Sorry, that item does not exist. \n");
   }
   let filteredDatabase = urlsForUser(req.session.user_id, urlDatabase);
-  console.log(req.params.id +" is requested to be deleted");
+  console.log(req.params.id + " is requested to be deleted");
   if (!filteredDatabase[req.params.id]) {
     console.log("user action failed, insufficient access.");
     return res.send("Sorry, you do not have permission to delete that! \n");
   }
   delete urlDatabase[req.params.id];    // deleting from filteredDatabase won't do a thing because it's not a global variable
-  res.redirect(`/urls/`); 
+  res.redirect(`/urls/`);
 });
 
 app.get("/urls", (req, res) => {
   if (!req.session.user_id) {
     return res.send("Sorry, this feature is for registered users only! \n");
   }
-  const templateVars = { 
+  const templateVars = {
     user: users[req.session.user_id],
     urls: urlsForUser(req.session.user_id, urlDatabase),
   };
