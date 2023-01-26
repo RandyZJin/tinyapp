@@ -23,14 +23,33 @@ const urlDatabase = {
   "b2xVn2": {
     longURL: "http://www.lighthouselabs.ca",
     userID: "tester",
+    visitorStats: {
+      uniqueVisits: 0,
+      totalVisits: 0,
+      visitors: [],
+      visitingTime: []
+    }
   }, 
   "9sm5xK": {
     longURL: "http://www.google.com",
     userID: "tester",
+    visitorStats: {
+      uniqueVisits: 0,
+      totalVisits: 0,
+      visitors: [],
+      visitingTime: []
+
+    }
   },
   "y4nk33": {
     longURL: "https://www.yankees.com",
     userID: "userRandomID",
+    visitorStats: {
+      uniqueVisits: 0,
+      totalVisits: 0,
+      visitors: [],
+      visitingTime: []
+    }
   } 
 };
 
@@ -64,6 +83,12 @@ app.post("/urls", (req, res) => {
   urlDatabase[newID] = {};
   urlDatabase[newID].longURL = req.body.longURL;
   urlDatabase[newID].userID = req.session.user_id;
+  urlDatabase[newID].visitorStats = {
+    uniqueVisits: 0,
+    totalVisits: 0,
+    visitors: [],
+    visitingTime: []
+  };
   res.redirect(`/urls/${newID}`); 
 });
 
@@ -106,13 +131,15 @@ app.post("/login", (req, res) => {
 
 app.post("/logout", (req, res) => {
   console.log(`logout request for : ${req.session.user_id}`); // Log the POST request body to the console
-  setTimeout(()=> req.session = null, 100);
+  setTimeout(()=> req.session = null, 100); 
   setTimeout(()=> res.redirect(`/login/`), 300);
 });
 
 app.get("/", (req, res) => {
-  console.log(req.session.user_id); // test page
-  res.send("Hello!");
+  for (let keys in urlDatabase) {
+    console.log(urlDatabase[keys].visitorStats);
+  }
+  res.send("Hello!"); // test page
 });
 
 app.get("/login", (req, res) => {
@@ -210,7 +237,8 @@ app.get("/urls/:id", (req, res) => {
   const templateVars = {
     user: users[req.session.user_id],
     id: req.params.id,
-    longURL: filteredDatabase[req.params.id].longURL
+    longURL: filteredDatabase[req.params.id].longURL,
+    visit: filteredDatabase[req.params.id].visitorStats
   };
   res.render("urls_show", templateVars);
 });
@@ -220,6 +248,17 @@ app.get("/u/:id", (req, res) => {
     return res.send("Sorry, this link does not exist! \n");
   }
   const longURL = urlDatabase[req.params.id].longURL;
+
+  if (!req.session.visitor_id) {
+    req.session.visitor_id = generateRandomString();
+  }
+  if (!urlDatabase[req.params.id].visitorStats.visitors.includes(req.session.visitor_id)) {
+    urlDatabase[req.params.id].visitorStats.uniqueVisits += 1;
+  }
+  urlDatabase[req.params.id].visitorStats.visitors.push(req.session.visitor_id);
+  urlDatabase[req.params.id].visitorStats.totalVisits += 1;
+  urlDatabase[req.params.id].visitorStats.visitingTime.push(Date());
+
   res.redirect(longURL);
 });
 
