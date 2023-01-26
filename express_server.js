@@ -26,7 +26,7 @@ const urlDatabase = {
       uniqueVisits: 0,
       totalVisits: 0,
       visitors: [],
-      visitingTime: []
+      visitingTime: [],
     }
   }, 
   "9sm5xK": {
@@ -36,8 +36,7 @@ const urlDatabase = {
       uniqueVisits: 0,
       totalVisits: 0,
       visitors: [],
-      visitingTime: []
-
+      visitingTime: [],
     }
   },
   "y4nk33": {
@@ -47,7 +46,7 @@ const urlDatabase = {
       uniqueVisits: 0,
       totalVisits: 0,
       visitors: [],
-      visitingTime: []
+      visitingTime: [],
     }
   } 
 };
@@ -84,7 +83,7 @@ app.post("/urls", (req, res) => {
     uniqueVisits: 0,
     totalVisits: 0,
     visitors: [],
-    visitingTime: []
+    visitingTime: [],
   };
   res.redirect(`/urls/${newID}`); 
 });
@@ -100,11 +99,13 @@ app.post("/register", (req, res) => {
   if (!getUserByEmail(req.body.email, users)) {
     let newID = generateRandomString();
     console.log(`new user: ${req.body.email} under ${newID}`);
-    users[newID] = {};
-    users[newID].id = newID;
-    users[newID].email = req.body.email;
     const hashedPassword = bcrypt.hashSync(req.body.password, 10);
-    users[newID].password = hashedPassword;
+
+    users[newID] = {
+      id: newID,
+      email: req.body.email,
+      password: hashedPassword,
+    };
     console.log(`userbase now persists of ${users}`);
     req.session.user_id = users[newID].id;
     res.redirect(`/urls/`); 
@@ -191,12 +192,11 @@ app.delete("/urls/:id", (req, res) => {
     return res.send("Sorry, that item does not exist. \n");
   }
   let filteredDatabase = urlsForUser(req.session.user_id, urlDatabase);
-  console.log(req.params.id +" is requested to be deleted"); // Log the POST request body to the console
+  console.log(req.params.id +" is requested to be deleted");
   if (!filteredDatabase[req.params.id]) {
     console.log("user action failed, insufficient access.");
     return res.send("Sorry, you do not have permission to delete that! \n");
   }
-
   delete urlDatabase[req.params.id];    // deleting from filteredDatabase won't do a thing because it's not a global variable
   res.redirect(`/urls/`); 
 });
@@ -207,7 +207,7 @@ app.get("/urls", (req, res) => {
   }
   const templateVars = { 
     user: users[req.session.user_id],
-    urls: urlsForUser(req.session.user_id, urlDatabase) 
+    urls: urlsForUser(req.session.user_id, urlDatabase),
   };
   res.render("urls_index", templateVars);
 });
@@ -235,7 +235,7 @@ app.get("/urls/:id", (req, res) => {
     user: users[req.session.user_id],
     id: req.params.id,
     longURL: filteredDatabase[req.params.id].longURL,
-    visit: filteredDatabase[req.params.id].visitorStats
+    visit: filteredDatabase[req.params.id].visitorStats,
   };
   res.render("urls_show", templateVars);
 });
@@ -245,7 +245,6 @@ app.get("/u/:id", (req, res) => {
     return res.send("Sorry, this link does not exist! \n");
   }
   const longURL = urlDatabase[req.params.id].longURL;
-
   if (!req.session.visitor_id) {
     req.session.visitor_id = generateRandomString();
   }
@@ -255,7 +254,6 @@ app.get("/u/:id", (req, res) => {
   urlDatabase[req.params.id].visitorStats.visitors.push(req.session.visitor_id);
   urlDatabase[req.params.id].visitorStats.totalVisits += 1;
   urlDatabase[req.params.id].visitorStats.visitingTime.push(Date());
-
   res.redirect(longURL);
 });
 
@@ -264,7 +262,7 @@ app.get("/urls.json", (req, res) => {
     return res.send("Sorry, this feature is for registered users only! \n");
   }
   let filteredDatabase = urlsForUser(req.session.user_id, urlDatabase);
-  res.json(filteredDatabase);
+  res.json((filteredDatabase));
 });
 
 app.listen(PORT, () => {
