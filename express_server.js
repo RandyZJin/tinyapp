@@ -136,10 +136,10 @@ app.post("/logout", (req, res) => {
 });
 
 app.get("/", (req, res) => {
-  for (let keys in urlDatabase) {
-    console.log(urlDatabase[keys].visitorStats);
+  if (req.session.user_id) {
+    return res.redirect(`/urls/`);
   }
-  res.send("Hello!"); // test page
+  return res.redirect(`/login/`);
 });
 
 app.get("/login", (req, res) => {
@@ -270,12 +270,7 @@ app.get("/urls.json", (req, res) => {
   res.json(filteredDatabase);
 });
 
-app.get("/hello", (req, res) => {
-  res.send("<html><body>Hello <b>World</b></body></html>\n");
-});
-
 
 app.listen(PORT, () => {
   console.log(`Example app listening on port ${PORT}!`);
 });
-
